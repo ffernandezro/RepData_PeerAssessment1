@@ -1,25 +1,101 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+Author: Francisco J. Fernandez
+output: html_document 
 ---
+#Peer Assessment Project 1#
+##Loading and preprocessing the data
+```{r}
+##The first step will be a load of study data
+##from the file "activity.csv" 
+data <- read.csv("activity.csv")
+working_data<-data
+```
 
-
-## Loading and preprocessing the data
-
-
-
+```{r}
+##The second step is to add the data by day discarding data
+##without observation "NA"
+ag_data <-  aggregate(working_data[, 'steps'], by=list(working_data$date), 
+                      sum, na.rm = TRUE)
+colnames(ag_data) <- c('Date', 'Steps')
+## Observe the data generated
+head (ag_data)
+```
 ## What is mean total number of steps taken per day?
+```{r, message=FALSE,echo=TRUE}
+library(ggplot2)
+graph = ggplot(ag_data, aes(x = Steps)) + 
+      geom_histogram(binwidth = 800, color="black", fill="red") + 
+      labs(x = "Total Steps", y = "Observations", 
+           title = "Mean total number of steps taken per day")
+graph
+```
 
-
+```{r}
+## Calculate and report the mean and median total number of steps taken per day
+mean(ag_data$Steps)
+median(ag_data$Steps)
+```
 
 ## What is the average daily activity pattern?
+```{r, message=FALSE,echo=TRUE}
+## Formating date and time variables
+time <- formatC(working_data$interval/100, 2, format = "f")
+working_data$datetime <- as.POSIXct(paste(working_data$date, time), format = "%Y-%m-%d %H.%M",tz = "GMT")
+working_data$time <- format(working_data$datetime, format = "%H:%M:%S")
+working_data$time <- as.POSIXct(working_data$time, format = "%H:%M:%S")
+working_serie <- with(working_data, aggregate(steps, by = list(time), mean, 
+                                            na.rm = T))
+names(working_serie) = c("Interval", "MeanSteps")
+## Look at the first few rows of data
+head(working_serie)
+```
+```{r, message=FALSE,echo=TRUE}
+## Use ggplot to build and format graph
+working_graph <- ggplot(working_serie, aes(x = Interval, y = MeanSteps)) + 
+      geom_line(color = "red", size = 1.25) +  
+      labs(x = "Time Interval (hhmm)", y = "Steps",
+      title = "Mean total number of steps taken per Interval")
+      #+ scale_x_datetime(labels = date_format(format = "%H:%M"))
+working_graph
 
-
+## Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+max <- which.max(working_serie$MeanSteps)
+format(working_serie[max, "Interval"], format = "%H:%M")
+```
 
 ## Imputing missing values
+```{r,echo=TRUE}
+##Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+nrow(working_data[is.na(data[,1]) == TRUE,])
+```
 
-
-
+```{r,echo=TRUE,message=FALSE}
+##Devise a strategy for filling in all of the missing values in the dataset.
+suppressWarnings(library(Hmisc))
+working_fill <- working_data
+working_fill$steps <- with(working_fill, impute(steps, mean))
+## Look at the first few rows with no missing values
+head(working_fill)
+```
+```{r}
+##Create a new dataset that is equal to the original dataset but 
+##with the missing data filled in
+ag_data_fill <-  aggregate(working_fill[, 'steps'], by=list(working_fill$date), 
+                      sum, na.rm = TRUE)
+colnames(ag_data_fill) <- c('Date', 'Steps')
+head(ag_data_fill)
+```
+```{r, message=FALSE, echo=TRUE}
+##Make a histogram of the total number of steps taken each day
+qplot(ag_data_fill$Steps, geom = "histogram", fill=I("red"), main="Total number of steps taken each day - No missing values",xlab = "Total steps", ylab = "Frequency")
+```
+```{r}
+#Calculate and report the mean and median total number of steps taken per day
+working_temp <- tapply(working_fill$steps, working_fill$date, sum)
+mean(working_temp)
+median(working_temp)
+```
 ## Are there differences in activity patterns between weekdays and weekends?
+No time for more.
+I´m sorry.
